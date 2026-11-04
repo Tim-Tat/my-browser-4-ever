@@ -185,6 +185,7 @@ Ein Server ist für den ersten Browser-Prototyp **nicht notwendig**. Später sol
 - [ ] Import aus bestehenden Browsern prüfen
 - [ ] Browser-Erweiterungen auf Desktop separat evaluieren
 - [ ] Cookie-Sync nur nach eigenständiger Sicherheits- und Machbarkeitsprüfung
+- [ ] Darkweb-Modus (Idee, zweifach verschlüsselt) prüfen – siehe [docs/DARKWEB_MODUS_IDEE.md](docs/DARKWEB_MODUS_IDEE.md)
 
 > **Zeitplanung:** Eine erste interne Demo nach wenigen Arbeitssitzungen ist ein sinnvoller Anspruch. Eine öffentliche Alpha **gegen Ende November 2026** wurde als ambitioniertes Ziel diskutiert – **nicht als zugesagter Termin**. Sicherheit, Stabilität und tatsächlicher Teamaufwand bestimmen das Release.
 
