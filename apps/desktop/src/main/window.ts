@@ -1,10 +1,8 @@
-'use strict';
+import path from 'node:path';
+import { BrowserWindow, WebContentsView } from 'electron';
 
-const path = require('node:path');
-const { BrowserWindow, WebContentsView } = require('electron');
-
-const SIDEBAR_WIDTH = 240;
-const START_URL = 'https://www.wikipedia.org/';
+export const SIDEBAR_WIDTH = 240;
+export const START_URL = 'https://www.wikipedia.org/';
 
 const SECURE_WEB_PREFERENCES = {
   contextIsolation: true,
@@ -12,7 +10,7 @@ const SECURE_WEB_PREFERENCES = {
   sandbox: true,
 };
 
-function createMainWindow() {
+export function createMainWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -24,7 +22,7 @@ function createMainWindow() {
   });
 
   // Statische Sidebar (eigene Oberfläche, lokale Datei)
-  win.loadFile(path.join(__dirname, 'ui', 'index.html'));
+  win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 
   // Webseiten-Inhalt in eigener Ansicht, ohne Zugriff auf Node/Electron
   const page = new WebContentsView({ webPreferences: SECURE_WEB_PREFERENCES });
@@ -55,5 +53,3 @@ function createMainWindow() {
 
   return { win, page };
 }
-
-module.exports = { createMainWindow, SIDEBAR_WIDTH, START_URL };

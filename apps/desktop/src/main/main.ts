@@ -1,7 +1,5 @@
-'use strict';
-
-const { app, BrowserWindow } = require('electron');
-const { createMainWindow } = require('./window');
+import { app, BrowserWindow } from 'electron';
+import { createMainWindow } from './window';
 
 app.whenReady().then(() => {
   createMainWindow();
