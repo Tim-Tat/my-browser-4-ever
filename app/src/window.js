@@ -33,6 +33,12 @@ function createMainWindow() {
   // Keine zusätzlichen Fenster in Phase 0
   page.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
+  // Berechtigungen (Kamera, Mikrofon, Standort, Benachrichtigungen usw.) sind in
+  // Phase 0 grundsätzlich gesperrt. Electron würde Anfragen sonst automatisch erlauben.
+  const { session } = page.webContents;
+  session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+  session.setPermissionCheckHandler(() => false);
+
   const layout = () => {
     const { width, height } = win.getContentBounds();
     page.setBounds({
