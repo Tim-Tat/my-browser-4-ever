@@ -1,0 +1,23 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  width: 240px;
+  background: #0b0b14;
+  color: #e8e8f2;
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  user-select: none;
+}
+.sidebar { display: flex; flex-direction: column; gap: 14px; height: 100%; padding: 14px 12px; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
+.brand small { margin-left: auto; font-size: 10px; font-weight: 400; color: #8a8aa6; }
+.address {
+  padding: 8px 10px; border-radius: 10px; background: #171726; color: #a8a8c4;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+h2 { margin: 0 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #8a8aa6; }
+ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.tab { padding: 8px 10px; border-radius: 10px; }
+.tab.pinned { background: #121220; }
+.tab.active { background: #25254a; color: #fff; }
+footer { margin-top: auto; font-size: 11px; color: #6c6c88; }
