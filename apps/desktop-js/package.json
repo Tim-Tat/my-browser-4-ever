@@ -1,7 +1,7 @@
 {
   "name": "aven",
   "productName": "Aven",
-  "version": "0.0.1-alpha",
+  "version": "0.0.2",
   "description": "Aven – ein eigenständiger, offener Desktop-Browser (My Browser 4 Ever).",
   "main": "src/main/main.js",
   "private": true,

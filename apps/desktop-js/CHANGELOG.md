@@ -1,6 +1,6 @@
 # Änderungen
 
-## 1.0.0
+## 0.0.2
 Erste vollständige lokale Version für Windows.
 
 - Tabs, Spaces, Pins, Adressleiste, Wiederherstellung nach Neustart

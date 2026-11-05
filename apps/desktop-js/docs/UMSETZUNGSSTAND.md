@@ -1,4 +1,4 @@
-# Umsetzungsstand Aven 0.0.1-alpha
+# Umsetzungsstand Aven 0.0.2
 
 Stand: 4. November 2026. Dieses Dokument sagt, was im Code steckt, was getestet ist und was fehlt. Es ist keine Sicherheitszusage. Die Version ist eine Alpha, es gab keinen externen Sicherheitsreview.
 
