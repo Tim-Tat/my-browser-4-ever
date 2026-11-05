@@ -1,0 +1,37 @@
+{
+  "name": "aven",
+  "productName": "Aven",
+  "version": "0.0.2",
+  "description": "Aven – ein eigenständiger, offener Desktop-Browser (My Browser 4 Ever).",
+  "main": "src/main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "electron-builder --win",
+    "test:server": "node --test server/test/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "org.aven.browser",
+    "productName": "Aven",
+    "files": [
+      "src/**",
+      "assets/**",
+      "!assets/previews/**",
+      "!assets/reference/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/logo/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

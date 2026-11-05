@@ -1,0 +1,16 @@
+# Schlüssel erzeugen und in .env eintragen:  node index.js gen-keys > .env
+# Der Dienst lauscht nur lokal. TLS übernimmt ein vorgeschalteter Reverse-Proxy (siehe docs/SERVER.md).
+services:
+  aven-sync:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      AVEN_TRUST_PROXY: "1"
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - aven-data:/data
+
+volumes:
+  aven-data:

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src file:; form-action https://duckduckgo.com;">
+  <title>Neuer Tab</title>
+  <style>
+    html, body { height: 100%; background-image: url("../../assets/backgrounds/new-tab.svg"); background-size: cover; background-position: center; margin: 0; background-color: #03011c; color: #e9e9f1; font: 15px "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+    main { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+    img { width: 64px; height: 57px; }
+    form { width: min(540px, 80vw); }
+    input { width: 100%; height: 46px; padding: 0 18px; border-radius: 10px; border: 1px solid transparent; background: #120e36; color: inherit; font: inherit; outline: none; }
+    input:focus { border-color: #176dff; }
+    input::placeholder { color: #8b8ba3; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="../../assets/logo/mark-gradient.svg" alt="">
+    <form action="https://duckduckgo.com/" method="get">
+      <input name="q" placeholder="Suchen" autofocus autocomplete="off">
+    </form>
+  </main>
+</body>
+</html>
