@@ -82,8 +82,11 @@ function createDarkweb({ BrowserWindow, WebContentsView, session, ipcMain, dialo
     for (const t of tabs.values()) t.view.setBounds({ x: 0, y: BAR_HEIGHT, width: w, height: Math.max(0, h - BAR_HEIGHT) });
   }
 
+  // Bei Fokusverlust ist die native Webansicht ausgeblendet; ein HTML-Overlay allein läge darunter.
+  let shielded = false;
+
   function refreshVisibility() {
-    for (const [id, t] of tabs) t.view.setVisible(!panelOpen && id === activeId);
+    for (const [id, t] of tabs) t.view.setVisible(!panelOpen && !shielded && id === activeId);
   }
 
   async function applyProxy() {
@@ -211,8 +214,8 @@ function createDarkweb({ BrowserWindow, WebContentsView, session, ipcMain, dialo
     win.webContents.on('will-navigate', (e) => e.preventDefault());
     win.on('closed', () => { win = null; endSession(); });
     // Verhindert, dass der Fensterinhalt im Taskwechsler sichtbar bleibt.
-    win.on('blur', () => send('privacy-shield', true));
-    win.on('focus', () => send('privacy-shield', false));
+    win.on('blur', () => { shielded = true; refreshVisibility(); send('privacy-shield', true); });
+    win.on('focus', () => { shielded = false; refreshVisibility(); send('privacy-shield', false); });
     win.webContents.once('did-finish-load', () => {
       createTab();
       push();

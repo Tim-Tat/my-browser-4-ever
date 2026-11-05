@@ -34,8 +34,12 @@ class SyncEngine {
   async sync(enabled) {
     const on = COLLECTIONS.filter((c) => enabled[c]);
     const summary = { pushed: 0, pulled: 0, deleted: 0, failed: 0, rejected: 0 };
-    const rejected = await this.push(on, summary);
-    await this.pull(on, summary);
+    // Neues Gerät (noch nie abgeglichen): erst den Kontostand holen. Sonst überschreiben lokale
+    // Standardwerte (z. B. Verlauf aus, Aufbewahrungsfristen) die vorhandenen Einstellungen.
+    const firstSync = this.state.cursor === 0;
+    if (firstSync) await this.pull(on, summary);
+    await this.push(on, summary);
+    if (!firstSync) await this.pull(on, summary);
     // Neu eingeschaltete Kategorien ab Anfang nachladen, ohne den gemeinsamen Cursor zu verschieben.
     const replay = this.state.replay.filter((c) => on.includes(c));
     if (replay.length) {

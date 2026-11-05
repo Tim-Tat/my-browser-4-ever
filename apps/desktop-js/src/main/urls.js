@@ -8,7 +8,8 @@ const PAGES_URL = pathToFileURL(path.join(__dirname, '..', 'pages', 'aven.html')
 const INTERNAL_PAGES = ['settings', 'account', 'privacy', 'history', 'bookmarks', 'archive', 'downloads', 'passwords'];
 
 const internalUrl = (name) => `${PAGES_URL}#${name}`;
-const isInternalUrl = (url) => typeof url === 'string' && url.startsWith(PAGES_URL);
+// Nur die eigene lokale Datei, optional mit #Seite. Kein bloßes Präfix und keine Pfadteile.
+const isInternalUrl = (url) => typeof url === 'string' && (url === PAGES_URL || url.startsWith(`${PAGES_URL}#`));
 
 // Wandelt Eingaben der Adressleiste in eine ladbare URL um.
 function normalizeInput(raw) {

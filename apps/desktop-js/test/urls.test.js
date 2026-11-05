@@ -24,3 +24,12 @@ test('interne aven://-Adressen', () => {
   assert.strictEqual(normalizeInput('aven://history'), internalUrl('history'));
   assert.strictEqual(normalizeInput('aven://gibtesnicht'), null);
 });
+
+test('isInternalUrl erkennt nur die exakte lokale Seite', () => {
+  const { isInternalUrl, internalUrl, PAGES_URL } = require('../src/main/urls');
+  assert.strictEqual(isInternalUrl(internalUrl('passwords')), true);
+  assert.strictEqual(isInternalUrl(PAGES_URL), true);
+  assert.strictEqual(isInternalUrl('https://evil.example/pages/aven.html#passwords'), false);
+  assert.strictEqual(isInternalUrl('file:///C:/evil/pages/aven.html#passwords'), false);
+  assert.strictEqual(isInternalUrl(PAGES_URL + 'x#passwords'), false);
+});

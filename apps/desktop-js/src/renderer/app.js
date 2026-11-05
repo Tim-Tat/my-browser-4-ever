@@ -5,12 +5,14 @@ let renamingId = null;
 
 const act = (name, payload) => window.aven.invoke(name, payload);
 
+// Der Hauptprozess liefert die exakten lokalen Adressen. Eine fremde Webseite mit gleichem Pfad
+// (https://evil.example/pages/aven.html) darf nie als interne Seite oder Neuer Tab erscheinen.
 function isNewTab(url) {
-  return !url || url.endsWith('/newtab.html');
+  return !url || (!!state && url === state.newtabUrl);
 }
 
 function isInternal(url) {
-  return /[/]pages[/]aven[.]html(#|$)/.test(url || '');
+  return !!state && typeof url === 'string' && (url === state.pagesUrl || url.startsWith(`${state.pagesUrl}#`));
 }
 
 // Adresse, wie sie in der Adressleiste erscheint.

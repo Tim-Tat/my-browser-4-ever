@@ -12,7 +12,7 @@ const { Vault } = require('./vault/vault');
 const { TorManager } = require('./darkweb/tor');
 const { createDarkweb } = require('./darkweb/darkweb');
 const { generatePassword, estimateStrength, pwnedCount } = require('./vault/tools');
-const { normalizeInput, isAllowedUrl, isInternalUrl, internalUrl, originOf } = require('./urls');
+const { normalizeInput, isAllowedUrl, isInternalUrl, internalUrl, originOf, PAGES_URL } = require('./urls');
 
 const PARTITION = 'persist:aven';
 const TOOLBAR_H = 52;
@@ -96,6 +96,9 @@ function snapshot() {
     activeSpaceId: state.activeSpaceId,
     activeTabId: state.activeTabId,
     sidebarCollapsed: state.sidebarCollapsed,
+    // Exakte lokale Adressen für die Oberfläche: Nur sie gelten als "Neuer Tab" bzw. interne Seite.
+    pagesUrl: PAGES_URL,
+    newtabUrl: NEWTAB_URL,
     bookmarked: !!active && profile.isBookmarked(active.url),
     downloadsActive: downloads.active,
     vault: { exists: vault.exists(), unlocked: vault.unlocked, matches: active ? vault.findForUrl(active.url).length : 0 },

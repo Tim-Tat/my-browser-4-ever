@@ -72,3 +72,23 @@ test('apply() meldet den lokal geltenden Stand: ein geöffneter Tab wird nicht m
   await engine.sync({ tabs: true });
   assert.strictEqual(pushed.length, 0, `kein erneuter Upload mit alter URL (nach erstem Lauf: ${afterFirst})`);
 });
+
+test('Neues Gerät: erst den Kontostand holen, lokale Standardwerte überschreiben keine Einstellungen', async () => {
+  const dek = k.newDek();
+  const kontoWerte = { historyEnabled: false, historyRetentionDays: 7 };
+  const api = fakeApi(dek, [{ collection: 'settings', id: 'main', data: kontoWerte }]);
+  const pushed = [];
+  api.push = async (records) => { pushed.push(...records); return { rejected: [] }; };
+
+  // Lokal gelten noch die Standardwerte des frisch installierten Geräts.
+  let lokal = { historyEnabled: true, historyRetentionDays: 90 };
+  const local = {
+    collect: () => ({ settings: [{ id: 'main', data: { ...lokal } }] }),
+    apply: (collection, id, data) => { lokal = { ...data }; },
+  };
+  const state = { cursor: 0, map: {}, replay: [] };
+  await new SyncEngine({ api, dek, local, state }).sync({ settings: true });
+
+  assert.deepStrictEqual(lokal, kontoWerte, 'Kontoeinstellungen sind lokal übernommen');
+  assert.deepStrictEqual(pushed, [], 'Es wurde nichts hochgeladen, was die Kontoeinstellungen überschreibt');
+});
