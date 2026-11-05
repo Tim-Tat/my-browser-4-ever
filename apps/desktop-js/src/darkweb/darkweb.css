@@ -56,4 +56,5 @@ select { height: 32px; padding: 0 8px; border-radius: 6px; border: 1px solid var
 #panel .item .u { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; }
 #panel code { background: var(--field); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
 
+#shield[hidden] { display: none; }
 #shield { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; background: var(--bg); font-size: 28px; color: var(--accent); font-weight: 700; }

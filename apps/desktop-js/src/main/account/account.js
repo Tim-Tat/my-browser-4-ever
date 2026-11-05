@@ -186,7 +186,7 @@ class AccountManager {
   }
 
   // Normal: der Server gibt den DEK frei. Ultra: nur mit Wiederherstellungsschlüssel, sonst `reset: true`.
-  async recoverFinish({ email, verified, newPassword, recoveryKeyText, reset }) {
+  async recoverFinish({ email, verified, newPassword, recoveryKeyText, reset, secondFactor }) {
     if (!newPassword || newPassword.length < 10) throw new ApiError(0, 'password_too_short');
     const api = new Api(this.data.serverUrl);
     const salt = k.newSalt();
@@ -213,8 +213,16 @@ class AccountManager {
     }
     body.newWrappedDek = k.wrapDek(next.wrapKey, dek);
     await api.recoverFinish(body);
-    const res = await this.login({ email, password: newPassword });
-    return { ...res, reset: !!reset, recoveryKey: newRecoveryKey ? k.formatRecoveryKey(newRecoveryKey) : null };
+    // Ab hier ist das Passwort geändert. Die Anmeldung danach darf das Ergebnis nicht mehr kippen,
+    // sonst geht z. B. der neue Wiederherstellungsschlüssel des Ultra-Resets verloren.
+    const result = { reset: !!reset, recoveryKey: newRecoveryKey ? k.formatRecoveryKey(newRecoveryKey) : null };
+    try {
+      // Ein Einmalcode ist bei der Prüfung verbraucht; nur der TOTP-Code kann nochmals dienen.
+      const res = await this.login({ email, password: newPassword, totp: secondFactor?.totp });
+      return { ...res, ...result, signedIn: true };
+    } catch (err) {
+      return { ...result, signedIn: false, loginError: err.code || 'login_failed' };
+    }
   }
 
   // ---------- Sync, Lebenszeichen ----------

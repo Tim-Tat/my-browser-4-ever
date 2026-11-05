@@ -48,3 +48,27 @@ test('Nachladen bleibt vorgemerkt, solange die Kategorie aus ist', async () => {
   assert.deepStrictEqual(state.replay, ['history']);
   assert.deepStrictEqual(local.applied, {});
 });
+
+test('apply() meldet den lokal geltenden Stand: ein geöffneter Tab wird nicht mit alter URL zurückgeschrieben', async () => {
+  const dek = k.newDek();
+  // Auf dem Server liegt die neuere URL, lokal bleibt der geöffnete Tab auf der alten.
+  const remote = { id: 't1', spaceId: 's1', pinned: false, url: 'https://neu.example', title: 'Neu' };
+  const api = fakeApi(dek, [{ collection: 'tabs', id: 't1', data: remote }]);
+  const pushed = [];
+  api.push = async (records) => { pushed.push(...records); return { rejected: [] }; };
+
+  const localTab = { id: 't1', spaceId: 's1', pinned: false, url: 'https://alt.example', title: 'Alt' };
+  const local = {
+    collect: () => ({ tabs: [{ id: 't1', data: { ...localTab } }] }),
+    apply: () => ({ ...localTab }), // Tab übernimmt die empfangene URL nicht und gibt seinen Stand zurück
+  };
+  const state = { cursor: 0, map: {}, replay: [] };
+  const engine = new SyncEngine({ api, dek, local, state });
+
+  await engine.sync({ tabs: true });
+  const afterFirst = pushed.length; // erster Lauf: Push läuft vor dem Pull
+  pushed.length = 0;
+
+  await engine.sync({ tabs: true });
+  assert.strictEqual(pushed.length, 0, `kein erneuter Upload mit alter URL (nach erstem Lauf: ${afterFirst})`);
+});

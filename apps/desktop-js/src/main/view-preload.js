@@ -5,6 +5,8 @@ const { contextBridge, ipcRenderer } = require('electron');
 if (location.protocol === 'file:' && /\/pages\/aven\.html$/.test(location.pathname)) {
   contextBridge.exposeInMainWorld('avenPages', {
     invoke: (name, payload) => ipcRenderer.invoke('aven:page', name, payload),
+    // Der Hauptprozess meldet jede Sperre des Tresors, damit die Seite geladene Passwörter verwirft.
+    onVaultLocked: (cb) => ipcRenderer.on('aven:vault-locked', () => cb()),
   });
 }
 

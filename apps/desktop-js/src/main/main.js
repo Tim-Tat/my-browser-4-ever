@@ -121,6 +121,14 @@ function broadcast() {
   }, 30);
 }
 
+// Sagt allen offenen internen Seiten, dass der Tresor gesperrt ist (Sperre per Zeit, System, Hand).
+function notifyVaultLocked() {
+  for (const view of views.values()) {
+    const wc = view.webContents;
+    if (!wc.isDestroyed() && /\/pages\/aven\.html/.test(wc.getURL())) wc.send('aven:vault-locked');
+  }
+}
+
 const sendEvent = (name, data) => win && !win.isDestroyed() && win.webContents.send('aven:event', name, data);
 
 // ---------- Tabs ----------
@@ -665,7 +673,11 @@ const syncAdapter = {
       settings: [{ id: 'main', data: Object.fromEntries(SYNCED_SETTINGS.map((key) => [key, profile.settings[key]])) }],
     };
   },
+  // Gibt bei Tabs den Stand zurück, der lokal wirklich gilt. Ein geöffneter Tab behält seine aktuelle
+  // URL; würde der Sync die empfangene URL als übernommen merken, lüde er danach die alte URL hoch
+  // und setzte damit Navigationen auf anderen Geräten zurück.
   apply(collection, id, data) {
+    let effective;
     if (collection === 'spaces') {
       if (data === null) return deleteSpace(id);
       const space = spaceById(id);
@@ -678,6 +690,7 @@ const syncAdapter = {
       if (tab) {
         Object.assign(tab, { spaceId: data.spaceId, pinned: !!data.pinned, title: data.title || tab.title });
         if (!views.has(id)) tab.url = data.url;
+        effective = { id, spaceId: tab.spaceId, pinned: tab.pinned, url: tab.url, title: tab.title };
       } else {
         state.tabs.push({ id, spaceId: data.spaceId, pinned: !!data.pinned, url: data.url, title: data.title || '', favicon: '', lastActive: Date.now() });
       }
@@ -689,6 +702,7 @@ const syncAdapter = {
       profile.upsertSynced(collection, data);
     }
     broadcast();
+    return effective;
   },
 };
 
@@ -928,7 +942,7 @@ if (!app.requestSingleInstanceLock()) {
     };
     vault = new Vault(path.join(dir, 'aven-vault.json'), {
       deviceWrap,
-      onLock: () => { pendingCredential = null; broadcast(); },
+      onLock: () => { pendingCredential = null; notifyVaultLocked(); broadcast(); },
     });
     darkweb = createDarkweb({
       BrowserWindow, WebContentsView, session, ipcMain, dialog, userDataDir: dir, uiDir: path.join(__dirname, '..', 'darkweb'),

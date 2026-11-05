@@ -110,8 +110,9 @@ class SyncEngine {
           summary.failed += 1; // falscher Schlüssel oder manipulierter Datensatz
           continue;
         }
-        this.local.apply(rec.collection, rec.id, data);
-        this.state.map[key] = { hash: hashOf(data), updatedAt: rec.updatedAt };
+        // apply() darf den lokal tatsächlich geltenden Stand zurückgeben (z. B. Tab behält seine URL).
+        const kept = this.local.apply(rec.collection, rec.id, data);
+        this.state.map[key] = { hash: hashOf(kept ?? data), updatedAt: rec.updatedAt };
         summary.pulled += 1;
       }
       if (!res.more) break;

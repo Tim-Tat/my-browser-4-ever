@@ -396,13 +396,14 @@ function renderRecover(serverInput) {
     const go = h('button', { class: 'primary' }, 'Weiter');
     go.addEventListener('click', runStep(err, go, async () => {
       const factor = second.input.value.trim();
-      const verified = await call('account:recover:verify', { email: mail, token: code.input.value, secondFactor: factor ? (factor.length > 6 ? { recoveryCode: factor } : { totp: factor }) : undefined });
-      stepNewPassword(mail, verified);
+      const secondFactor = factor ? (factor.length > 6 ? { recoveryCode: factor } : { totp: factor }) : undefined;
+      const verified = await call('account:recover:verify', { email: mail, token: code.input.value, secondFactor });
+      stepNewPassword(mail, verified, secondFactor);
     }));
     box.replaceChildren(h('div', { class: 'card' }, h('p', {}, 'Falls die Adresse bei diesem Server registriert ist, wurde ein Code verschickt.'), code.row, second.row, err, go));
   }
 
-  function stepNewPassword(mail, verified) {
+  function stepNewPassword(mail, verified, secondFactor) {
     const password = field('Neues Passwort (mindestens 10 Zeichen)', 'password');
     const err = h('p', { class: 'error' });
     const parts = [password.row];
@@ -416,7 +417,8 @@ function renderRecover(serverInput) {
     }
     const go = h('button', { class: 'primary' }, 'Passwort setzen');
     go.addEventListener('click', runStep(err, go, async () => {
-      const result = await call('account:recover:finish', { email: mail, verified, newPassword: password.input.value, recoveryKeyText: key?.input.value, reset: reset.checked });
+      const result = await call('account:recover:finish', { email: mail, verified, newPassword: password.input.value, recoveryKeyText: key?.input.value, reset: reset.checked, secondFactor });
+      if (!result.signedIn) toast('Passwort geändert. Bitte jetzt mit dem neuen Passwort anmelden.');
       if (result.recoveryKey) box.replaceChildren(recoveryKeyNotice(result.recoveryKey, renderAccount));
       else renderAccount();
     }));
@@ -844,6 +846,8 @@ function route() {
 
 if (api) {
   window.addEventListener('hashchange', route);
+  // Bei jeder Sperre die Passwortseite neu aufbauen: Editor, Passwortfelder und "Zeigen" sind dann weg.
+  api.onVaultLocked?.(() => { if (location.hash === '#passwords') renderPasswords(); });
   route();
 } else {
   main.textContent = 'Diese Seite ist nur innerhalb von Aven verfügbar.';
