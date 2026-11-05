@@ -54,7 +54,15 @@ class AccountManager {
   }
 
   setCategories(patch) {
-    for (const name of COLLECTIONS) if (typeof patch[name] === 'boolean') this.data.categories[name] = patch[name];
+    for (const name of COLLECTIONS) {
+      if (typeof patch[name] !== 'boolean') continue;
+      // Beim Einschalten alles aus dieser Kategorie nachladen: Solange sie aus war, hat der
+      // gemeinsame Cursor ihre Einträge übersprungen.
+      if (patch[name] && !this.data.categories[name]) {
+        this.data.replay = [...new Set([...(this.data.replay || []), name])];
+      }
+      this.data.categories[name] = patch[name];
+    }
     this.save();
   }
 
@@ -116,7 +124,7 @@ class AccountManager {
   }
 
   discardLocal() {
-    for (const key of ['token', 'accountId', 'mode', 'kdfSalt', 'dek', 'emailHint', 'cursor', 'map', 'lastSyncAt', 'daysUntilDeletion']) delete this.data[key];
+    for (const key of ['token', 'accountId', 'mode', 'kdfSalt', 'dek', 'emailHint', 'cursor', 'map', 'replay', 'lastSyncAt', 'daysUntilDeletion']) delete this.data[key];
     this.authKeyInMemory = null;
     this.save();
   }
@@ -213,7 +221,7 @@ class AccountManager {
 
   async sync(local) {
     if (!this.signedIn) return null;
-    const state = { cursor: this.data.cursor || 0, map: this.data.map || {} };
+    const state = { cursor: this.data.cursor || 0, map: this.data.map || {}, replay: this.data.replay || [] };
     const engine = new SyncEngine({ api: this.api(), dek: k.unb64(this.data.dek), local, state, now: this.now });
     try {
       this.lastSync = await engine.sync(this.data.categories);
@@ -225,6 +233,7 @@ class AccountManager {
     } finally {
       this.data.cursor = state.cursor;
       this.data.map = state.map;
+      this.data.replay = state.replay;
       this.data.lastSyncAt = this.now();
       this.save();
     }

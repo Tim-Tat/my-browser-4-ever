@@ -3,8 +3,10 @@ const STEPS = [
   ['closeTabs', 'Offene Tabs schließen'],
   ['clearHistoryArchive', 'Verlauf, Archiv und Download-Liste entfernen'],
   ['clearSiteData', 'Cookies, Cache und Website-Daten löschen'],
-  ['stopSync', 'Sync stoppen, Sitzung beenden, lokale Schlüssel verwerfen'],
+  // Reihenfolge ist wichtig: Die Konto-Löschung braucht die Gerätesitzung. Wer zuerst abmeldet,
+  // verliert sie, und die Löschung würde weder ausgeführt noch als ausstehend vorgemerkt.
   ['deleteAccount', 'Konto und Sync-Daten auf dem Server löschen'],
+  ['stopSync', 'Sync stoppen, Sitzung beenden, lokale Schlüssel verwerfen'],
   ['lockVault', 'Passwort-Tresor sperren'],
   ['deleteVault', 'Passwort-Tresor unwiderruflich löschen'],
   ['resetProfile', 'Lokales Profil zurücksetzen (Lesezeichen, Einstellungen)'],

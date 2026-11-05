@@ -249,6 +249,11 @@ test('Zweiter Faktor: Einrichtung, Pflicht bei Anmeldung, Einmalcode, Wiederhers
     const enable = await call(s.base, 'POST', '/v1/totp/enable', { code: totp.totpNow(setup.body.secret, s.clock.now) }, a.token);
     assert.strictEqual(enable.body.recoveryCodes.length, 10);
 
+    // Ein aktiver zweiter Faktor wird durch erneutes Einrichten nicht still ersetzt oder abgeschaltet.
+    const again = await call(s.base, 'POST', '/v1/totp/setup', { authKey: a.body.authKey }, a.token);
+    assert.strictEqual(again.status, 409);
+    assert.strictEqual(again.body.error, 'totp_already_enabled');
+
     const login = (extra) => call(s.base, 'POST', '/v1/login', { email: 'totp@example.org', authKey: a.body.authKey, ...extra });
     assert.strictEqual((await login({})).body.error, 'second_factor_required');
     assert.strictEqual((await login({ totp: '123456' })).body.error, 'second_factor_invalid');

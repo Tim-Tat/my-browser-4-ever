@@ -272,6 +272,9 @@ function createApp(config, { mailer: injectedMailer, now: clock = Date.now } = {
 
   route('POST', '/v1/totp/setup', ({ account, body }) => {
     requireAuthKey(account, body.authKey);
+    // Ein aktiver zweiter Faktor wird nie still ersetzt: erst mit /v1/totp/disable (verlangt den
+    // aktuellen Faktor) abschalten, dann neu einrichten.
+    if (account.totp_enabled) fail(409, 'totp_already_enabled');
     const secret = totp.newSecret();
     q('UPDATE accounts SET totp_secret = ?, totp_enabled = 0 WHERE id = ?').run(secret, account.id);
     return { secret, uri: totp.otpauthUri(secret, 'Konto') };

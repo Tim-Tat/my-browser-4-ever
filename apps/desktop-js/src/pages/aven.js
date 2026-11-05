@@ -272,6 +272,7 @@ const ERRORS = {
   export_rate_limited: 'Der letzte Export ist noch zu frisch. Bitte später erneut anfordern.',
   quota_exceeded: 'Der Speicherplatz auf dem Server ist aufgebraucht.',
   invalid_code: 'Der Code ist ungültig.',
+  totp_already_enabled: 'Der zweite Faktor ist schon aktiv. Zum Ändern zuerst abschalten, dann neu einrichten.',
   not_ready: 'Der Export ist noch nicht fertig.',
 };
 

@@ -28,13 +28,20 @@ class SyncEngine {
     this.now = now;
     this.state.cursor ||= 0;
     this.state.map ||= {};
+    this.state.replay ||= []; // Kategorien, die seit dem Einschalten noch ab Anfang nachgeladen werden müssen
   }
 
   async sync(enabled) {
     const on = COLLECTIONS.filter((c) => enabled[c]);
     const summary = { pushed: 0, pulled: 0, deleted: 0, failed: 0, rejected: 0 };
     const rejected = await this.push(on, summary);
-    await this.pull(on, summary, rejected);
+    await this.pull(on, summary);
+    // Neu eingeschaltete Kategorien ab Anfang nachladen, ohne den gemeinsamen Cursor zu verschieben.
+    const replay = this.state.replay.filter((c) => on.includes(c));
+    if (replay.length) {
+      await this.pull(replay, summary, 0);
+      this.state.replay = this.state.replay.filter((c) => !replay.includes(c));
+    }
     return summary;
   }
 
@@ -77,11 +84,15 @@ class SyncEngine {
     return rejected;
   }
 
-  async pull(collections, summary) {
+  // `from` gesetzt: Nachladen ab dieser Stelle mit eigenem Cursor, der gemeinsame bleibt unberührt.
+  async pull(collections, summary, from = null) {
+    const replay = from !== null;
+    let cursor = replay ? from : this.state.cursor;
     for (;;) {
-      const res = await this.api.pull(this.state.cursor);
+      const res = await this.api.pull(cursor);
       for (const rec of res.records) {
-        this.state.cursor = Math.max(this.state.cursor, rec.seq);
+        cursor = Math.max(cursor, rec.seq);
+        if (!replay) this.state.cursor = cursor;
         if (!collections.includes(rec.collection)) continue;
         const key = `${rec.collection}/${rec.id}`;
         const known = this.state.map[key];
