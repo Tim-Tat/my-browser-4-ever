@@ -4,6 +4,10 @@ const { encrypt, decrypt } = require('./keys');
 const COLLECTIONS = ['spaces', 'tabs', 'archive', 'history', 'bookmarks', 'settings'];
 const BATCH = 200;
 
+// Rückgabewert von local.apply(): Der Datensatz kann noch nicht übernommen werden (z. B. ein Tab,
+// dessen Space erst später im Strom kommt). Er gilt dann nicht als übernommen und wird nicht gelöscht.
+const DEFER = Symbol('defer');
+
 // Gleiche Daten ergeben immer den gleichen Text, unabhängig von der Schlüsselreihenfolge.
 function stableStringify(value) {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
@@ -91,37 +95,57 @@ class SyncEngine {
   // `from` gesetzt: Nachladen ab dieser Stelle mit eigenem Cursor, der gemeinsame bleibt unberührt.
   async pull(collections, summary, from = null) {
     const replay = from !== null;
-    let cursor = replay ? from : this.state.cursor;
-    for (;;) {
-      const res = await this.api.pull(cursor);
-      for (const rec of res.records) {
-        cursor = Math.max(cursor, rec.seq);
-        if (!replay) this.state.cursor = cursor;
-        if (!collections.includes(rec.collection)) continue;
-        const key = `${rec.collection}/${rec.id}`;
-        const known = this.state.map[key];
-        if (known && known.updatedAt === rec.updatedAt) continue; // eigener Eintrag
-        if (rec.deleted) {
-          this.local.apply(rec.collection, rec.id, null);
-          this.state.map[key] = { deleted: true, updatedAt: rec.updatedAt };
-          summary.deleted += 1;
-          continue;
+    const startCursor = replay ? from : this.state.cursor;
+    let cursor = startCursor;
+    const deferred = [];
+    try {
+      for (;;) {
+        const res = await this.api.pull(cursor);
+        for (const rec of res.records) {
+          cursor = Math.max(cursor, rec.seq);
+          if (!replay) this.state.cursor = cursor;
+          if (!collections.includes(rec.collection)) continue;
+          const key = `${rec.collection}/${rec.id}`;
+          const known = this.state.map[key];
+          if (known && known.updatedAt === rec.updatedAt) continue; // eigener Eintrag
+          if (rec.deleted) {
+            this.local.apply(rec.collection, rec.id, null);
+            this.state.map[key] = { deleted: true, updatedAt: rec.updatedAt };
+            summary.deleted += 1;
+            continue;
+          }
+          let data;
+          try {
+            data = JSON.parse(decrypt(this.dek, rec.blob, key).toString('utf8'));
+          } catch {
+            summary.failed += 1; // falscher Schlüssel oder manipulierter Datensatz
+            continue;
+          }
+          if (!this.applyRecord(rec, key, data, summary)) deferred.push({ rec, key, data });
         }
-        let data;
-        try {
-          data = JSON.parse(decrypt(this.dek, rec.blob, key).toString('utf8'));
-        } catch {
-          summary.failed += 1; // falscher Schlüssel oder manipulierter Datensatz
-          continue;
-        }
-        // apply() darf den lokal tatsächlich geltenden Stand zurückgeben (z. B. Tab behält seine URL).
-        const kept = this.local.apply(rec.collection, rec.id, data);
-        this.state.map[key] = { hash: hashOf(kept ?? data), updatedAt: rec.updatedAt };
-        summary.pulled += 1;
+        if (!res.more) break;
       }
-      if (!res.more) break;
+      // Zurückgestellte Datensätze (z. B. Tabs vor ihrem Space) nach dem ganzen Strom noch einmal versuchen.
+      for (const { rec, key, data } of deferred) {
+        if (!this.applyRecord(rec, key, data, summary)) summary.deferred = (summary.deferred || 0) + 1;
+      }
+    } catch (err) {
+      // Bricht der Abruf ab, sind zurückgestellte Datensätze nur im Speicher: ab Anfang des Laufs neu holen.
+      if (!replay && deferred.length) this.state.cursor = startCursor;
+      throw err;
     }
+  }
+
+  // Übernimmt einen Datensatz. false = zurückgestellt: nicht als übernommen merken, damit er nicht
+  // später als fehlender Eintrag gelöscht wird.
+  applyRecord(rec, key, data, summary) {
+    // apply() darf den lokal tatsächlich geltenden Stand zurückgeben (z. B. Tab behält seine URL).
+    const kept = this.local.apply(rec.collection, rec.id, data);
+    if (kept === DEFER) return false;
+    this.state.map[key] = { hash: hashOf(kept ?? data), updatedAt: rec.updatedAt };
+    summary.pulled += 1;
+    return true;
   }
 }
 
-module.exports = { SyncEngine, COLLECTIONS, stableStringify, hashOf };
+module.exports = { SyncEngine, COLLECTIONS, DEFER, stableStringify, hashOf };

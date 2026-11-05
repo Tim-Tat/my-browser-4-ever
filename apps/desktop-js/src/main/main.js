@@ -8,6 +8,7 @@ const { Downloads } = require('./downloads');
 const { buildExport, historyToCsv, toHtmlReport } = require('./exporter');
 const { runPanic, PANIC_NOTE } = require('./panic');
 const { AccountManager } = require('./account/account');
+const { DEFER } = require('./account/sync');
 const { Vault } = require('./vault/vault');
 const { TorManager } = require('./darkweb/tor');
 const { createDarkweb } = require('./darkweb/darkweb');
@@ -688,7 +689,10 @@ const syncAdapter = {
       else state.spaces.push({ id, name: String(data.name || 'Space').slice(0, 30), color: data.color || SPACE_COLORS[0], lastTabId: null });
     } else if (collection === 'tabs') {
       if (data === null) return removeTab(id) && undefined;
-      if (!spaceById(data.spaceId) || !isAllowedUrl(data.url)) return;
+      if (!isAllowedUrl(data.url)) return;
+      // Der Space kommt im Strom evtl. erst nach seinen Tabs: zurückstellen statt verwerfen. Ein
+      // verworfener, aber als übernommen gemerkter Tab würde sonst als gelöscht hochgeladen.
+      if (!spaceById(data.spaceId)) return DEFER;
       const tab = tabById(id);
       if (tab) {
         Object.assign(tab, { spaceId: data.spaceId, pinned: !!data.pinned, title: data.title || tab.title });

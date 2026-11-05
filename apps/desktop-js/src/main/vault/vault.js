@@ -51,6 +51,16 @@ class Vault {
     this.items = new Map();
     this.neverSave = new Set();
     this.timer = null;
+    this.epoch = 0; // zählt jede Sperre und Löschung; laufende Entsperrvorgänge prüfen sie danach
+  }
+
+  // Verwirft Ergebnisse eines asynchronen Vorgangs, wenn der Tresor währenddessen gesperrt oder
+  // gelöscht wurde (Systemsperre, Ruhezustand, Notfall). Sonst würde er den Schlüssel wieder setzen
+  // oder die gelöschte Tresordatei neu anlegen.
+  ensureCurrent(epoch, ...secrets) {
+    if (this.epoch === epoch) return;
+    for (const s of secrets) zero(s);
+    throw new VaultError('locked');
   }
 
   // ---------- Datei ----------
@@ -120,6 +130,7 @@ class Vault {
   }
 
   lock(reason = 'manual') {
+    this.epoch += 1;
     clearTimeout(this.timer);
     this.timer = null;
     const was = !!this.vk;
@@ -225,7 +236,9 @@ class Vault {
       wrapped: { master: null, recovery: k.encrypt(recoveryKey, vk, AAD_RECOVERY) },
       settings: { autoLockMinutes: 5 }, security: { failed: 0, lockedUntil: 0 }, items: [], neverSave: null,
     };
+    const epoch = this.epoch;
     await this.wrapMaster(doc, vk, masterPassword);
+    this.ensureCurrent(epoch, vk, recoveryKey);
     this.write(doc);
     this.activate(vk, doc);
     const text = k.formatRecoveryKey(recoveryKey);
@@ -234,9 +247,11 @@ class Vault {
   }
 
   async unlock(masterPassword) {
+    const epoch = this.epoch;
     const doc = this.read();
     this.checkLockout(doc);
     const vk = await this.openWithMaster(doc, masterPassword);
+    this.ensureCurrent(epoch, vk);
     if (!vk) {
       const wait = this.registerFailure(doc);
       throw new VaultError('wrong_password', { retryAfterMs: wait });
@@ -249,6 +264,7 @@ class Vault {
   // Öffnet mit dem Wiederherstellungsschlüssel und setzt ein neues Meisterpasswort.
   async unlockWithRecovery(recoveryText, newMasterPassword) {
     if (typeof newMasterPassword !== 'string' || newMasterPassword.length < MIN_MASTER_LENGTH) throw new VaultError('master_too_short');
+    const epoch = this.epoch;
     const doc = this.read();
     this.checkLockout(doc);
     let vk;
@@ -261,6 +277,7 @@ class Vault {
       throw new VaultError('wrong_recovery_key', { retryAfterMs: wait });
     }
     await this.wrapMaster(doc, vk, newMasterPassword);
+    this.ensureCurrent(epoch, vk);
     doc.security = { failed: 0, lockedUntil: 0 };
     this.write(doc);
     this.activate(vk, doc);
@@ -271,13 +288,16 @@ class Vault {
     if (typeof newPassword !== 'string' || newPassword.length < MIN_MASTER_LENGTH) throw new VaultError('master_too_short');
     const doc = this.read();
     this.checkLockout(doc);
+    const epoch = this.epoch;
     const check = await this.openWithMaster(doc, oldPassword);
+    this.ensureCurrent(epoch, check);
     if (!check) {
       const wait = this.registerFailure(doc);
       throw new VaultError('wrong_password', { retryAfterMs: wait });
     }
     zero(check);
     await this.wrapMaster(doc, this.vk, newPassword);
+    this.ensureCurrent(epoch);
     this.write(doc);
   }
 
