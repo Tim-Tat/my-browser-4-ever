@@ -1,0 +1,18 @@
+:root {
+  --mb-midnight: #03011C;
+  --mb-deep-violet: #19046D;
+  --mb-violet: #5327EF;
+  --mb-electric-blue: #176DFF;
+  --mb-cyan: #04B7EF;
+  --mb-orchid: #B14DFA;
+  --mb-lilac: #E080F3;
+  --mb-gradient-signature: linear-gradient(115deg, #E080F3 0%, #B14DFA 30%, #5327EF 58%, #176DFF 80%, #04B7EF 100%);
+  --mb-gradient-aurora: linear-gradient(115deg, #5327EF 0%, #176DFF 52%, #04B7EF 100%);
+  --mb-gradient-ribbon: linear-gradient(115deg, #E080F3 0%, #B14DFA 50%, #5327EF 100%);
+  --mb-gradient-midnight: linear-gradient(115deg, #03011C 0%, #19046D 55%, #5327EF 100%);
+  --mb-gradient-electric: linear-gradient(115deg, #176DFF 0%, #04B7EF 100%);
+  --mb-gradient-soft: linear-gradient(115deg, #E080F3 0%, #B14DFA 58%, #176DFF 100%);
+  --mb-background: var(--mb-midnight);
+  --mb-text: #F6F4FF;
+  --mb-radius: 16px;
+}

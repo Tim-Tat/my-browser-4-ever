@@ -1,0 +1,13 @@
+{
+  "name": "aven-sync-server",
+  "version": "0.0.1-alpha",
+  "private": true,
+  "description": "Selbst hostbarer Sync- und Konto-Server für Aven. Keine Abhängigkeiten, benötigt Node.js 24.7 oder neuer.",
+  "main": "src/app.js",
+  "engines": { "node": ">=24.7" },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test test/*.test.js",
+    "keys": "node index.js gen-keys"
+  }
+}

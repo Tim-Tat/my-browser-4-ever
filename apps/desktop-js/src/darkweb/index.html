@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src file:;">
+  <title>Aven Onion-Modus</title>
+  <link rel="stylesheet" href="darkweb.css">
+</head>
+<body>
+  <header id="bar">
+    <span class="badge">Onion-Modus</span>
+    <button id="back" class="icon" title="Zurück">←</button>
+    <button id="forward" class="icon" title="Vorwärts">→</button>
+    <button id="reload" class="icon" title="Neu laden">⟳</button>
+    <input id="address" type="text" spellcheck="false" autocomplete="off" placeholder="Adresse eingeben, zum Beispiel xyz.onion">
+    <button id="status" class="status" title="Verbindung zum Tor-Netzwerk"></button>
+    <select id="level" title="Sicherheitsstufe">
+      <option value="standard">Standard</option>
+      <option value="safer">Sicherer (kein WebGL, kein Autoplay)</option>
+      <option value="safest">Am sichersten (kein JavaScript)</option>
+    </select>
+    <button id="bookmarks" class="text">Lesezeichen</button>
+    <button id="end" class="text danger" title="Sitzung sofort beenden">Beenden</button>
+  </header>
+  <nav id="tabs"></nav>
+  <div id="notice" hidden></div>
+  <section id="panel" hidden></section>
+  <div id="shield" hidden>Onion-Modus</div>
+  <script src="darkweb.js"></script>
+</body>
+</html>

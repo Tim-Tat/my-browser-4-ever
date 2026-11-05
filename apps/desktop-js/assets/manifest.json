@@ -1,0 +1,202 @@
+[
+  {
+    "file": "logo/mark-gradient.svg",
+    "category": "Logo",
+    "title": "Zeichen · gradient"
+  },
+  {
+    "file": "logo/mark-white.svg",
+    "category": "Logo",
+    "title": "Zeichen · white"
+  },
+  {
+    "file": "logo/mark-midnight.svg",
+    "category": "Logo",
+    "title": "Zeichen · midnight"
+  },
+  {
+    "file": "logo/wordmark-dark.svg",
+    "category": "Logo",
+    "title": "Wortmarke · dark"
+  },
+  {
+    "file": "logo/wordmark-light.svg",
+    "category": "Logo",
+    "title": "Wortmarke · light"
+  },
+  {
+    "file": "logo/wordmark-transparent.svg",
+    "category": "Logo",
+    "title": "Wortmarke · transparent"
+  },
+  {
+    "file": "logo/aven-wordmark-dark.svg",
+    "category": "Logo",
+    "title": "Aven · dark"
+  },
+  {
+    "file": "logo/aven-wordmark-light.svg",
+    "category": "Logo",
+    "title": "Aven · light"
+  },
+  {
+    "file": "logo/aven-wordmark-transparent.svg",
+    "category": "Logo",
+    "title": "Aven · transparent"
+  },
+  {
+    "file": "logo/app-dark.svg",
+    "category": "App-Icons",
+    "title": "app-dark"
+  },
+  {
+    "file": "logo/app-light.svg",
+    "category": "App-Icons",
+    "title": "app-light"
+  },
+  {
+    "file": "logo/app-gradient.svg",
+    "category": "App-Icons",
+    "title": "app-gradient"
+  },
+  {
+    "file": "logo/app-maskable.svg",
+    "category": "App-Icons",
+    "title": "app-maskable"
+  },
+  {
+    "file": "logo/favicon.svg",
+    "category": "App-Icons",
+    "title": "Favicon"
+  },
+  {
+    "file": "gradients/signature.svg",
+    "category": "Farbverläufe",
+    "title": "signature"
+  },
+  {
+    "file": "gradients/aurora.svg",
+    "category": "Farbverläufe",
+    "title": "aurora"
+  },
+  {
+    "file": "gradients/ribbon.svg",
+    "category": "Farbverläufe",
+    "title": "ribbon"
+  },
+  {
+    "file": "gradients/midnight.svg",
+    "category": "Farbverläufe",
+    "title": "midnight"
+  },
+  {
+    "file": "gradients/electric.svg",
+    "category": "Farbverläufe",
+    "title": "electric"
+  },
+  {
+    "file": "gradients/soft.svg",
+    "category": "Farbverläufe",
+    "title": "soft"
+  },
+  {
+    "file": "backgrounds/desktop.svg",
+    "category": "Hintergründe",
+    "title": "desktop"
+  },
+  {
+    "file": "backgrounds/mobile.svg",
+    "category": "Hintergründe",
+    "title": "mobile"
+  },
+  {
+    "file": "backgrounds/new-tab.svg",
+    "category": "Hintergründe",
+    "title": "new-tab"
+  },
+  {
+    "file": "backgrounds/social.svg",
+    "category": "Hintergründe",
+    "title": "social"
+  },
+  {
+    "file": "icons/back.svg",
+    "category": "Browser-Icons",
+    "title": "back"
+  },
+  {
+    "file": "icons/forward.svg",
+    "category": "Browser-Icons",
+    "title": "forward"
+  },
+  {
+    "file": "icons/refresh.svg",
+    "category": "Browser-Icons",
+    "title": "refresh"
+  },
+  {
+    "file": "icons/home.svg",
+    "category": "Browser-Icons",
+    "title": "home"
+  },
+  {
+    "file": "icons/search.svg",
+    "category": "Browser-Icons",
+    "title": "search"
+  },
+  {
+    "file": "icons/tabs.svg",
+    "category": "Browser-Icons",
+    "title": "tabs"
+  },
+  {
+    "file": "icons/plus.svg",
+    "category": "Browser-Icons",
+    "title": "plus"
+  },
+  {
+    "file": "icons/close.svg",
+    "category": "Browser-Icons",
+    "title": "close"
+  },
+  {
+    "file": "icons/bookmark.svg",
+    "category": "Browser-Icons",
+    "title": "bookmark"
+  },
+  {
+    "file": "icons/download.svg",
+    "category": "Browser-Icons",
+    "title": "download"
+  },
+  {
+    "file": "icons/history.svg",
+    "category": "Browser-Icons",
+    "title": "history"
+  },
+  {
+    "file": "icons/shield.svg",
+    "category": "Browser-Icons",
+    "title": "shield"
+  },
+  {
+    "file": "icons/private.svg",
+    "category": "Browser-Icons",
+    "title": "private"
+  },
+  {
+    "file": "icons/globe.svg",
+    "category": "Browser-Icons",
+    "title": "globe"
+  },
+  {
+    "file": "icons/menu.svg",
+    "category": "Browser-Icons",
+    "title": "menu"
+  },
+  {
+    "file": "icons/settings.svg",
+    "category": "Browser-Icons",
+    "title": "settings"
+  }
+]
