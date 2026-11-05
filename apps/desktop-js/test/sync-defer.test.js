@@ -36,42 +36,67 @@ function localStore() {
   };
 }
 
+const tab = (id, spaceId) => ({ id, spaceId, pinned: false, url: `https://${id}.example`, title: id });
+
 test('Tab vor seinem Space: wird zurückgestellt, übernommen und nie als gelöscht hochgeladen', async () => {
   const dek = k.newDek();
   // Der Space wurde nach seinen Tabs geändert und kommt deshalb im Strom hinter ihnen.
   const api = fakeApi(dek, [
-    { collection: 'tabs', id: 't1', data: { id: 't1', spaceId: 's1', pinned: false, url: 'https://a.example', title: 'A' } },
-    { collection: 'tabs', id: 't2', data: { id: 't2', spaceId: 's1', pinned: true, url: 'https://b.example', title: 'B' } },
+    { collection: 'tabs', id: 't1', data: tab('t1', 's1') },
+    { collection: 'tabs', id: 't2', data: tab('t2', 's1') },
     { collection: 'spaces', id: 's1', data: { id: 's1', name: 'Arbeit', color: 'blue' } },
   ]);
   const local = localStore();
-  const state = { cursor: 0, map: {}, replay: [] };
+  const state = { cursor: 0, map: {}, replay: [], pending: [] };
   const engine = new SyncEngine({ api, dek, local, state });
 
   const first = await engine.sync({ spaces: true, tabs: true });
   assert.deepStrictEqual([...local.tabs.keys()].sort(), ['t1', 't2'], 'beide Tabs sind nach dem Lauf da');
   assert.strictEqual(first.pulled, 3);
+  assert.deepStrictEqual(state.pending, [], 'nichts bleibt zurückgestellt');
 
   api.pushed.length = 0;
   await engine.sync({ spaces: true, tabs: true });
   assert.deepStrictEqual(api.pushed.filter((r) => r.deleted), [], 'keine Löschmarkierungen für die Tabs');
 });
 
-test('Fehlt der Space dauerhaft: Tab bleibt aus, wird aber nicht als gelöscht gemeldet', async () => {
+test('Fehlt der Space dauerhaft: Tab bleibt gespeichert zurückgestellt, wird aber nicht als gelöscht gemeldet', async () => {
   const dek = k.newDek();
-  const api = fakeApi(dek, [
-    { collection: 'tabs', id: 't1', data: { id: 't1', spaceId: 'fehlt', pinned: false, url: 'https://a.example', title: 'A' } },
-  ]);
+  const api = fakeApi(dek, [{ collection: 'tabs', id: 't1', data: tab('t1', 'fehlt') }]);
   const local = localStore();
-  const state = { cursor: 0, map: {}, replay: [] };
+  const state = { cursor: 0, map: {}, replay: [], pending: [] };
   const engine = new SyncEngine({ api, dek, local, state });
 
   const summary = await engine.sync({ spaces: true, tabs: true });
   assert.strictEqual(summary.deferred, 1);
   assert.strictEqual(local.tabs.size, 0);
   assert.strictEqual(state.map['tabs/t1'], undefined, 'nicht als übernommen gemerkt');
+  assert.strictEqual(state.pending.length, 1, 'bleibt für spätere Läufe gespeichert');
 
   api.pushed.length = 0;
   await engine.sync({ spaces: true, tabs: true });
   assert.deepStrictEqual(api.pushed.filter((r) => r.deleted), []);
+});
+
+test('Spaces zuerst aus, später an: die übersprungenen Tabs kommen nach', async () => {
+  const dek = k.newDek();
+  const api = fakeApi(dek, [
+    { collection: 'spaces', id: 's1', data: { id: 's1', name: 'Arbeit', color: 'blue' } },
+    { collection: 'tabs', id: 't1', data: tab('t1', 's1') },
+  ]);
+  const local = localStore();
+  const state = { cursor: 0, map: {}, replay: [], pending: [] };
+  const engine = new SyncEngine({ api, dek, local, state });
+
+  // Tabs an, Spaces vorübergehend aus: Der Cursor rückt vor, der Tab wird zurückgestellt.
+  await engine.sync({ spaces: false, tabs: true });
+  assert.strictEqual(local.tabs.size, 0);
+  assert.strictEqual(state.pending.length, 1);
+  assert.strictEqual(state.cursor, 2);
+
+  // Spaces werden eingeschaltet (AccountManager.setCategories trägt sie zum Nachladen ein).
+  state.replay.push('spaces');
+  await engine.sync({ spaces: true, tabs: true });
+  assert.deepStrictEqual([...local.tabs.keys()], ['t1'], 'der Tab ist jetzt da');
+  assert.deepStrictEqual(state.pending, []);
 });

@@ -383,7 +383,10 @@ function createApp(config, { mailer: injectedMailer, now: clock = Date.now } = {
       .run(verifier, serverSalt, body.newKdfSalt, body.newWrappedDek, account.id);
     q('DELETE FROM tokens WHERE hash = ?').run(row.hash);
     revokeSessions(account.id);
-    return { ok: true, reset: !!body.reset };
+    // Die bestätigte Wiederherstellung (E-Mail-Code und zweiter Faktor) stellt gleich eine neue
+    // Gerätesitzung aus. Sonst bliebe ausgesperrt, wer den letzten Einmalcode eingesetzt hat.
+    const token = newSession(account, body.deviceName);
+    return { ok: true, reset: !!body.reset, token, accountId: account.id, mode: account.mode };
   });
 
   route('POST', '/v1/export', ({ account, body }) => {

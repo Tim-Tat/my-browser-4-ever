@@ -33,6 +33,35 @@ class SyncEngine {
     this.state.cursor ||= 0;
     this.state.map ||= {};
     this.state.replay ||= []; // Kategorien, die seit dem Einschalten noch ab Anfang nachgeladen werden müssen
+    this.state.pending ||= []; // zurückgestellte Datensätze (verschlüsselt), z. B. Tabs vor ihrem Space
+  }
+
+  dropPending(key) {
+    this.state.pending = this.state.pending.filter((r) => `${r.collection}/${r.id}` !== key);
+  }
+
+  addPending(rec) {
+    this.dropPending(`${rec.collection}/${rec.id}`);
+    this.state.pending.push(rec);
+  }
+
+  // Versucht alle zurückgestellten Datensätze noch einmal, auch aus früheren Läufen. Was weiter nicht
+  // geht (Space fehlt oder ist aus), bleibt gespeichert und wird nie als gelöscht gemeldet.
+  retryPending(collections, summary) {
+    for (const rec of [...this.state.pending]) {
+      if (!collections.includes(rec.collection)) continue;
+      const key = `${rec.collection}/${rec.id}`;
+      let data;
+      try {
+        data = JSON.parse(decrypt(this.dek, rec.blob, key).toString('utf8'));
+      } catch {
+        this.dropPending(key);
+        summary.failed += 1;
+        continue;
+      }
+      if (this.applyRecord(rec, key, data, summary)) this.dropPending(key);
+    }
+    if (this.state.pending.length) summary.deferred = this.state.pending.length;
   }
 
   async sync(enabled) {
@@ -50,6 +79,7 @@ class SyncEngine {
       await this.pull(replay, summary, 0);
       this.state.replay = this.state.replay.filter((c) => !replay.includes(c));
     }
+    this.retryPending(on, summary);
     return summary;
   }
 
@@ -95,44 +125,34 @@ class SyncEngine {
   // `from` gesetzt: Nachladen ab dieser Stelle mit eigenem Cursor, der gemeinsame bleibt unberührt.
   async pull(collections, summary, from = null) {
     const replay = from !== null;
-    const startCursor = replay ? from : this.state.cursor;
-    let cursor = startCursor;
-    const deferred = [];
-    try {
-      for (;;) {
-        const res = await this.api.pull(cursor);
-        for (const rec of res.records) {
-          cursor = Math.max(cursor, rec.seq);
-          if (!replay) this.state.cursor = cursor;
-          if (!collections.includes(rec.collection)) continue;
-          const key = `${rec.collection}/${rec.id}`;
-          const known = this.state.map[key];
-          if (known && known.updatedAt === rec.updatedAt) continue; // eigener Eintrag
-          if (rec.deleted) {
-            this.local.apply(rec.collection, rec.id, null);
-            this.state.map[key] = { deleted: true, updatedAt: rec.updatedAt };
-            summary.deleted += 1;
-            continue;
-          }
-          let data;
-          try {
-            data = JSON.parse(decrypt(this.dek, rec.blob, key).toString('utf8'));
-          } catch {
-            summary.failed += 1; // falscher Schlüssel oder manipulierter Datensatz
-            continue;
-          }
-          if (!this.applyRecord(rec, key, data, summary)) deferred.push({ rec, key, data });
+    let cursor = replay ? from : this.state.cursor;
+    for (;;) {
+      const res = await this.api.pull(cursor);
+      for (const rec of res.records) {
+        cursor = Math.max(cursor, rec.seq);
+        if (!replay) this.state.cursor = cursor;
+        if (!collections.includes(rec.collection)) continue;
+        const key = `${rec.collection}/${rec.id}`;
+        this.dropPending(key); // eine neuere Fassung ersetzt die zurückgestellte
+        const known = this.state.map[key];
+        if (known && known.updatedAt === rec.updatedAt) continue; // eigener Eintrag
+        if (rec.deleted) {
+          this.local.apply(rec.collection, rec.id, null);
+          this.state.map[key] = { deleted: true, updatedAt: rec.updatedAt };
+          summary.deleted += 1;
+          continue;
         }
-        if (!res.more) break;
+        let data;
+        try {
+          data = JSON.parse(decrypt(this.dek, rec.blob, key).toString('utf8'));
+        } catch {
+          summary.failed += 1; // falscher Schlüssel oder manipulierter Datensatz
+          continue;
+        }
+        // Nicht übernehmbar (z. B. Space fehlt noch): speichern und in diesem oder einem späteren Lauf nachholen.
+        if (!this.applyRecord(rec, key, data, summary)) this.addPending(rec);
       }
-      // Zurückgestellte Datensätze (z. B. Tabs vor ihrem Space) nach dem ganzen Strom noch einmal versuchen.
-      for (const { rec, key, data } of deferred) {
-        if (!this.applyRecord(rec, key, data, summary)) summary.deferred = (summary.deferred || 0) + 1;
-      }
-    } catch (err) {
-      // Bricht der Abruf ab, sind zurückgestellte Datensätze nur im Speicher: ab Anfang des Laufs neu holen.
-      if (!replay && deferred.length) this.state.cursor = startCursor;
-      throw err;
+      if (!res.more) break;
     }
   }
 

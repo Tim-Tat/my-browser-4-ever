@@ -37,6 +37,7 @@ let pendingCredential = null; // wartet auf das Entsperren des Tresors, nur im A
 let credentialPromptOpen = false;
 const promptedAt = new Map();
 let syncing = false;
+let syncEpoch = 0; // zählt Notfallbereinigungen; ein laufender Sync schreibt danach nichts mehr
 let state = null; // { spaces, tabs, activeSpaceId, activeTabId, sidebarCollapsed, bounds }
 const views = new Map(); // tabId -> WebContentsView
 const closedTabs = [];
@@ -374,6 +375,7 @@ function resetProfile() {
 }
 
 async function panic() {
+  syncEpoch += 1; // laufende Syncs verwerfen, bevor etwas geleert wird
   const results = await runPanic(profile.settings.panic.actions, {
     endDarkweb: () => darkweb.endSession(),
     closeTabs: closeAllTabs,
@@ -717,7 +719,13 @@ async function runSync() {
   if (syncing || !account.signedIn) return null;
   syncing = true;
   try {
-    return await account.sync(syncAdapter);
+    // Trifft die Antwort erst nach einer Notfallbereinigung ein, darf sie lokal nichts mehr befüllen.
+    const epoch = syncEpoch;
+    const live = {
+      collect: () => (epoch === syncEpoch ? syncAdapter.collect() : {}),
+      apply: (...args) => (epoch === syncEpoch ? syncAdapter.apply(...args) : DEFER),
+    };
+    return await account.sync(live);
   } catch {
     return null; // Fehler steht in account.status().lastError
   } finally {

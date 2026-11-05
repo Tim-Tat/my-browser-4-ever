@@ -24,6 +24,14 @@ class Container {
     this.now = now;
     this.key = null;
     this.data = null;
+    this.epoch = 0; // zählt jede Sperre; laufende Entsperr- und Erstellvorgänge prüfen sie danach
+  }
+
+  // Verwirft einen asynchronen Vorgang, wenn der Container währenddessen gesperrt oder gelöscht wurde.
+  ensureCurrent(epoch, ...secrets) {
+    if (this.epoch === epoch) return;
+    for (const s of secrets) zero(s);
+    throw new VaultError('locked');
   }
 
   exists() {
@@ -72,7 +80,9 @@ class Container {
     if (typeof passphrase !== 'string' || passphrase.length < MIN_PASSPHRASE) throw new VaultError('passphrase_too_short');
     const dek = crypto.randomBytes(32);
     const doc = { v: VERSION, createdAt: this.now(), security: { failed: 0, lockedUntil: 0 }, blob: null };
+    const epoch = this.epoch;
     await this.wrap(doc, dek, passphrase);
+    this.ensureCurrent(epoch, dek);
     doc.blob = k.encrypt(dek, Buffer.from(JSON.stringify(initial)), AAD_DATA);
     this.write(doc);
     this.key = dek;
@@ -83,7 +93,9 @@ class Container {
     const doc = this.read();
     const wait = doc.security.lockedUntil - this.now();
     if (wait > 0) throw new VaultError('too_many_attempts', { retryAfterMs: wait });
+    const epoch = this.epoch;
     const passKey = await this.derive(passphrase, doc.kdf);
+    this.ensureCurrent(epoch, passKey);
     let dek = null;
     try {
       const inner = k.decrypt(passKey, doc.wrappedKey, AAD_KEY);
@@ -123,6 +135,7 @@ class Container {
   }
 
   lock() {
+    this.epoch += 1;
     zero(this.key);
     this.key = null;
     this.data = null;

@@ -124,7 +124,7 @@ class AccountManager {
   }
 
   discardLocal() {
-    for (const key of ['token', 'accountId', 'mode', 'kdfSalt', 'dek', 'emailHint', 'cursor', 'map', 'replay', 'lastSyncAt', 'daysUntilDeletion']) delete this.data[key];
+    for (const key of ['token', 'accountId', 'mode', 'kdfSalt', 'dek', 'emailHint', 'cursor', 'map', 'replay', 'pending', 'lastSyncAt', 'daysUntilDeletion']) delete this.data[key];
     this.authKeyInMemory = null;
     this.save();
   }
@@ -212,10 +212,15 @@ class AccountManager {
       body.recoveryProof = k.b64(k.recoveryProofKey(recoveryKey));
     }
     body.newWrappedDek = k.wrapDek(next.wrapKey, dek);
-    await api.recoverFinish(body);
+    body.deviceName = this.deviceName;
+    const done = await api.recoverFinish(body);
     // Ab hier ist das Passwort geändert. Die Anmeldung danach darf das Ergebnis nicht mehr kippen,
     // sonst geht z. B. der neue Wiederherstellungsschlüssel des Ultra-Resets verloren.
     const result = { reset: !!reset, recoveryKey: newRecoveryKey ? k.formatRecoveryKey(newRecoveryKey) : null };
+    if (done && done.token) { // der Server hat eine neue Sitzung ausgestellt: kein erneuter Login nötig
+      this.adopt({ token: done.token, accountId: done.accountId, mode: done.mode, dek, kdfSalt: salt, email, authKey: next.authKey });
+      return { ...result, mode: done.mode, signedIn: true };
+    }
     try {
       // Ein Einmalcode ist bei der Prüfung verbraucht; nur der TOTP-Code kann nochmals dienen.
       const res = await this.login({ email, password: newPassword, totp: secondFactor?.totp });
@@ -229,7 +234,8 @@ class AccountManager {
 
   async sync(local) {
     if (!this.signedIn) return null;
-    const state = { cursor: this.data.cursor || 0, map: this.data.map || {}, replay: this.data.replay || [] };
+    const token = this.data.token; // Wurde währenddessen abgemeldet, wird nichts mehr zurückgeschrieben
+    const state = { cursor: this.data.cursor || 0, map: this.data.map || {}, replay: this.data.replay || [], pending: this.data.pending || [] };
     const engine = new SyncEngine({ api: this.api(), dek: k.unb64(this.data.dek), local, state, now: this.now });
     try {
       this.lastSync = await engine.sync(this.data.categories);
@@ -239,11 +245,14 @@ class AccountManager {
       if (err.status === 401) this.discardLocal();
       throw err;
     } finally {
-      this.data.cursor = state.cursor;
-      this.data.map = state.map;
-      this.data.replay = state.replay;
-      this.data.lastSyncAt = this.now();
-      this.save();
+      if (this.data.token === token) {
+        this.data.cursor = state.cursor;
+        this.data.map = state.map;
+        this.data.replay = state.replay;
+        this.data.pending = state.pending;
+        this.data.lastSyncAt = this.now();
+        this.save();
+      }
     }
     return this.lastSync;
   }
@@ -293,16 +302,16 @@ class AccountManager {
       this.discardLocal();
       return { ok: true };
     } catch (err) {
-      if (err.status === 401) { // Konto oder Sitzung existiert serverseitig nicht mehr
-        this.data.pendingCloudDelete = null;
-        this.discardLocal();
-        return { ok: true, detail: 'Auf dem Server war nichts mehr vorhanden' };
-      }
+      // Ein 401 heißt nur, dass diese Sitzung nicht mehr gilt (abgelaufen oder widerrufen). Ob das
+      // Konto noch besteht, weiß der Client nicht. Also nie als Erfolg melden, der Auftrag bleibt offen.
+      const detail = err.status === 401
+        ? 'Sitzung nicht mehr gültig, Löschung unbestätigt. Bitte anmelden und das Konto in den Einstellungen löschen.'
+        : `Löschung auf dem Server ausstehend (${err.code})`;
       this.data.pendingCloudDelete = target;
       this.discardLocal(); // lokale Schlüssel verwerfen, Löschauftrag bleibt offen
       this.data.token = undefined;
       this.save();
-      return { ok: false, detail: `Löschung auf dem Server ausstehend (${err.code})` };
+      return { ok: false, detail };
     }
   }
 

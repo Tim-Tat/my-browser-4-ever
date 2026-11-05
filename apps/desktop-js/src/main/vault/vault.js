@@ -292,13 +292,20 @@ class Vault {
     const check = await this.openWithMaster(doc, oldPassword);
     this.ensureCurrent(epoch, check);
     if (!check) {
-      const wait = this.registerFailure(doc);
+      const wait = this.registerFailure(this.read()); // auf dem aktuellen Stand, nicht auf dem alten
       throw new VaultError('wrong_password', { retryAfterMs: wait });
     }
     zero(check);
-    await this.wrapMaster(doc, this.vk, newPassword);
+    // Die Ableitung dauert. Währenddessen kann sich der Tresor ändern (z. B. neuer Wiederherstellungs-
+    // schlüssel). Darum nur das neue Master-Paket berechnen und danach in den aktuellen Stand einsetzen.
+    const next = { wrapped: {} };
+    await this.wrapMaster(next, this.vk, newPassword);
     this.ensureCurrent(epoch);
-    this.write(doc);
+    const fresh = this.read();
+    fresh.kdf = next.kdf;
+    fresh.deviceBound = next.deviceBound;
+    fresh.wrapped.master = next.wrapped.master;
+    this.write(fresh);
   }
 
   // Erzeugt einen neuen Wiederherstellungsschlüssel; der alte wird ungültig.
